@@ -1,5 +1,5 @@
 import type { Response } from "express";
-import { geminiRequest, extractGeminiText } from "../utils/gemini.ts";
+import { groqRequest } from "../utils/groq.ts";
 
 const ANALYSIS_PROMPT = (text: string) => `
 You are a senior ATS (Applicant Tracking System) expert and technical recruiter with 10+ years of experience reviewing software engineering and placement resumes for companies like Google, Amazon, and top Indian product companies.
@@ -39,9 +39,9 @@ ${text.slice(0, 6000)}
 
 export const analyzeResume = async (req: any, res: Response) => {
   try {
-    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const apiKey = (process.env.GROQ_API_KEY || "").trim();
     if (!apiKey) {
-      return res.status(503).json({ message: "GEMINI_API_KEY is not set in .env" });
+      return res.status(503).json({ message: "GROQ_API_KEY is not set in .env" });
     }
 
     const resumeText = (req.body.resumeText || "").trim();
@@ -49,38 +49,11 @@ export const analyzeResume = async (req: any, res: Response) => {
       return res.status(400).json({ message: "Resume content is too short." });
     }
 
-    const { status, body: rawBody } = await geminiRequest(apiKey, "gemini-2.5-flash", {
-      contents: [{ role: "user", parts: [{ text: ANALYSIS_PROMPT(resumeText) }] }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 8192,
-        thinkingConfig: { thinkingBudget: 0 }, // disable thinking so tokens go to the actual JSON
-      },
-    });
-
-    console.log("Gemini status:", status);
-    console.log("Gemini response:", rawBody.slice(0, 300));
-
-    let geminiData: any;
-    try {
-      geminiData = JSON.parse(rawBody);
-    } catch {
-      return res.status(502).json({ message: `AI service error (status ${status}): ${rawBody.slice(0, 200)}` });
-    }
-
-    if (geminiData.error) {
-      console.error("Gemini API error:", geminiData.error);
-      return res.status(502).json({ message: `Gemini: ${geminiData.error.message || "API error"}` });
-    }
-
-    if (status !== 200) {
-      return res.status(502).json({ message: `Gemini returned status ${status}: ${JSON.stringify(geminiData)}` });
-    }
-
-    const content = extractGeminiText(geminiData) || "";
-    if (!content) {
-      return res.status(500).json({ message: "AI returned an empty response. Please try again." });
-    }
+    const content = await groqRequest(
+      apiKey,
+      [{ role: "user", content: ANALYSIS_PROMPT(resumeText) }],
+      { model: "llama-3.3-70b-versatile", temperature: 0.3, maxTokens: 4096 },
+    );
 
     // Strip markdown code fences then grab the first { ... } block
     const stripped = content.replace(/^```json?\s*/i, "").replace(/```\s*$/i, "").trim();

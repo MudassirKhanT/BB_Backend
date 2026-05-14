@@ -25,6 +25,7 @@ import contestRoutes from "./routes/contest.routes.ts";
 import resumeRoutes from "./routes/resume.routes.ts";
 import mockRoutes from "./routes/mock.routes.ts";
 import chatbotRoutes from "./routes/chatbot.routes.ts";
+import jobsRoutes from "./routes/jobs.routes.ts";
 
 dotenv.config();
 
@@ -66,6 +67,7 @@ app.use("/api/contest", contestRoutes);
 app.use("/api/resume",  resumeRoutes);
 app.use("/api/mock",    mockRoutes);
 app.use("/api/chatbot", chatbotRoutes);
+app.use("/api/jobs",   jobsRoutes);
 
 app.get("/", (_req, res) => {
   res.send("BeyondBasic API running...");

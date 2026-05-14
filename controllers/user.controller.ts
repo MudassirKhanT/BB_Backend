@@ -16,14 +16,27 @@ export const getProfile = async (req: any, res: Response) => {
 
 export const updateProfile = async (req: any, res: Response) => {
   try {
-    const { username, bio, avatar } = req.body;
+    const {
+      username, bio, avatar,
+      college, branch, cgpa, graduationYear,
+      phone, linkedinUrl, githubUrl, skills, resumeUrl,
+    } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
-    if (username) user.username = username;
-    if (bio) user.bio = bio;
-    if (avatar) user.avatar = avatar;
+    if (username !== undefined) user.username = username;
+    if (bio !== undefined) user.bio = bio;
+    if (avatar !== undefined) user.avatar = avatar;
+    if (college !== undefined) user.college = college;
+    if (branch !== undefined) user.branch = branch;
+    if (cgpa !== undefined) user.cgpa = cgpa;
+    if (graduationYear !== undefined) user.graduationYear = graduationYear;
+    if (phone !== undefined) user.phone = phone;
+    if (linkedinUrl !== undefined) user.linkedinUrl = linkedinUrl;
+    if (githubUrl !== undefined) user.githubUrl = githubUrl;
+    if (skills !== undefined) user.skills = skills;
+    if (resumeUrl !== undefined) user.resumeUrl = resumeUrl;
     await user.save();
-    res.json({ message: "Profile updated successfully" });
+    res.json({ message: "Profile updated successfully", user });
   } catch {
     res.status(500).json({ message: "Failed to update profile" });
   }
