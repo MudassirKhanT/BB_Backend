@@ -1,6 +1,30 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
-const userSchema = new mongoose.Schema(
+export interface IUser extends Document {
+  username: string;
+  email: string;
+  password: string;
+  role: "student" | "admin" | "instructor";
+  avatar?: string;
+  bio?: string;
+  // Academic
+  college?: string;
+  branch?: string;
+  cgpa?: number;
+  graduationYear?: number;
+  // Professional
+  phone?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  skills?: string[];
+  resumeUrl?: string;
+  isBlocked: boolean;
+  isDeleted: boolean;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
+}
+
+const userSchema = new mongoose.Schema<IUser>(
   {
     username: {
       type: String,
@@ -27,6 +51,17 @@ const userSchema = new mongoose.Schema(
     },
     avatar: { type: String },
     bio: { type: String },
+    // Academic
+    college: { type: String },
+    branch: { type: String },
+    cgpa: { type: Number },
+    graduationYear: { type: Number },
+    // Professional
+    phone: { type: String },
+    linkedinUrl: { type: String },
+    githubUrl: { type: String },
+    skills: [{ type: String }],
+    resumeUrl: { type: String },
     isBlocked: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
     // Password reset
@@ -36,6 +71,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model<IUser>("User", userSchema);
 
 export default User;

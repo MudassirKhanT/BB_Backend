@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { geminiRequest, extractGeminiText } from "../utils/gemini.ts";
+import { groqRequest } from "../utils/groq.ts";
 
 const APP_SYSTEM_CONTEXT = `You are BeyondBasic AI — a smart, friendly assistant embedded in the BeyondBasic placement preparation platform. You have deep knowledge of every feature of the platform and help users navigate, learn, and prepare for tech placements.
 
@@ -121,9 +121,9 @@ BeyondBasic is a full-stack placement preparation platform for engineering stude
 
 export const chatWithBot = async (req: Request, res: Response) => {
   try {
-    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const apiKey = (process.env.GROQ_API_KEY || "").trim();
     if (!apiKey) {
-      return res.status(503).json({ message: "GEMINI_API_KEY is not configured" });
+      return res.status(503).json({ message: "GROQ_API_KEY is not configured" });
     }
 
     const { message, history = [] } = req.body as {
@@ -135,45 +135,16 @@ export const chatWithBot = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Message is required" });
     }
 
-    const contents = [
-      // Inject app context as the opening exchange so the model always has it
-      { role: "user",  parts: [{ text: APP_SYSTEM_CONTEXT }] },
-      { role: "model", parts: [{ text: "Understood! I'm BeyondBasic AI, fully briefed on the platform. How can I help you today?" }] },
-      // Conversation history
-      ...history.map((h) => ({ role: h.role, parts: [{ text: h.text }] })),
-      // Current user message
-      { role: "user", parts: [{ text: message.trim() }] },
+    const messages: { role: string; content: string }[] = [
+      { role: "system", content: APP_SYSTEM_CONTEXT },
+      ...history.map((h) => ({
+        role:    h.role === "model" ? "assistant" : "user",
+        content: h.text,
+      })),
+      { role: "user", content: message.trim() },
     ];
 
-    const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
-    const payload = { contents, generationConfig: { temperature: 0.7, maxOutputTokens: 1024 } };
-
-    let data: any;
-    let lastError = "";
-
-    for (const model of MODELS) {
-      const { status, body: rawBody } = await geminiRequest(apiKey, model, payload);
-      let parsed: any;
-      try { parsed = JSON.parse(rawBody); } catch { continue; }
-
-      if (parsed.error) {
-        lastError = parsed.error.message || "API error";
-        console.error(`Gemini chatbot error [${model}]:`, parsed.error);
-        // 503 = overloaded — try next model; anything else = real error, stop
-        if (parsed.error.code !== 503) {
-          return res.status(502).json({ message: `Gemini: ${lastError}` });
-        }
-        continue;
-      }
-
-      if (status === 200) { data = parsed; break; }
-    }
-
-    if (!data) {
-      return res.status(503).json({ message: `All models temporarily unavailable. ${lastError}` });
-    }
-
-    const reply = extractGeminiText(data) || "Sorry, I couldn't generate a response. Please try again!";
+    const reply = await groqRequest(apiKey, messages, { temperature: 0.7, maxTokens: 1024 });
     res.json({ reply });
   } catch (err: any) {
     console.error("Chatbot error:", err.message);
