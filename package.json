@@ -7,6 +7,7 @@
     "dev": "nodemon --exec npx ts-node server.ts",
     "start": "npx ts-node server.ts",
     "seed": "npx ts-node seed.ts",
+    "seed:sql": "npx ts-node seed-sql-problems.ts",
     "build": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier . --write"

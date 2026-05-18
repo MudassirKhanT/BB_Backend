@@ -1,10 +1,10 @@
 import type { Response } from "express";
-import { groqRequest } from "../utils/groq.ts";
+import { geminiRequest, extractGeminiText } from "../utils/gemini.ts";
+
+const SYSTEM_PROMPT = `You are a senior ATS (Applicant Tracking System) expert and technical recruiter with 10+ years of experience reviewing software engineering and placement resumes for companies like Google, Amazon, and top Indian product companies. Return ONLY valid JSON — no markdown, no code fences, no extra text.`;
 
 const ANALYSIS_PROMPT = (text: string) => `
-You are a senior ATS (Applicant Tracking System) expert and technical recruiter with 10+ years of experience reviewing software engineering and placement resumes for companies like Google, Amazon, and top Indian product companies.
-
-Analyze the following resume and return ONLY a valid JSON object with this exact structure (no markdown, no extra text):
+Analyze the following resume and return ONLY a valid JSON object with this exact structure:
 
 {
   "atsScore": <integer 0-100>,
@@ -39,9 +39,9 @@ ${text.slice(0, 6000)}
 
 export const analyzeResume = async (req: any, res: Response) => {
   try {
-    const apiKey = (process.env.GROQ_API_KEY || "").trim();
+    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
     if (!apiKey) {
-      return res.status(503).json({ message: "GROQ_API_KEY is not set in .env" });
+      return res.status(503).json({ message: "GEMINI_API_KEY is not set in .env" });
     }
 
     const resumeText = (req.body.resumeText || "").trim();
@@ -49,20 +49,34 @@ export const analyzeResume = async (req: any, res: Response) => {
       return res.status(400).json({ message: "Resume content is too short." });
     }
 
-    const content = await groqRequest(
-      apiKey,
-      [{ role: "user", content: ANALYSIS_PROMPT(resumeText) }],
-      { model: "llama-3.3-70b-versatile", temperature: 0.3, maxTokens: 4096 },
-    );
+    const payload = {
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ role: "user", parts: [{ text: ANALYSIS_PROMPT(resumeText) }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 4096,
+        responseMimeType: "application/json",
+      },
+    };
 
-    // Strip markdown code fences then grab the first { ... } block
+    const { status, body } = await geminiRequest(apiKey, "gemini-2.5-flash", payload);
+    const data = JSON.parse(body);
+
+    if (status !== 200 || data.error) {
+      throw new Error(data.error?.message || `Gemini API returned status ${status}`);
+    }
+
+    const content = extractGeminiText(data);
+    if (!content) throw new Error("Gemini returned empty content");
+
+    // Strip markdown code fences if present, then parse JSON
     const stripped = content.replace(/^```json?\s*/i, "").replace(/```\s*$/i, "").trim();
     const jsonMatch = stripped.match(/\{[\s\S]*\}/);
 
     let result: any;
     try {
       result = JSON.parse(jsonMatch ? jsonMatch[0] : stripped);
-    } catch (e) {
+    } catch {
       console.error("JSON parse failed. Content snippet:", content.slice(0, 400));
       return res.status(500).json({ message: "AI returned an unexpected format. Please try again." });
     }
