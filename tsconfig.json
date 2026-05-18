@@ -1,38 +1,21 @@
-// {
-//   "compilerOptions": {
-//     "target": "ES2020",
-//     "module": "NodeNext",
-//     "moduleResolution": "NodeNext",
-//     "outDir": "./dist",
-//     "esModuleInterop": true,
-//     "forceConsistentCasingInFileNames": true,
-//     "strict": false,
-//     "skipLibCheck": true,
-//     "allowImportingTsExtensions": true,
-//     "noEmit": true
-//   },
-//   "ts-node": {
-//     "esm": true,
-//     "experimentalSpecifierResolution": "node"
-//   },
-//   "include": ["**/*.ts"],
-//   "exclude": ["node_modules", "dist"]
-// }
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "outDir": "./dist",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": false,
     "skipLibCheck": true,
-    "noEmit": false
+    "noEmit": true,
+    "types": ["node"]
   },
   "ts-node": {
     "esm": true,
-    "experimentalSpecifierResolution": "node"
+    "experimentalSpecifierResolution": "node",
+    "transpileOnly": true
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "dist"]

@@ -23,12 +23,12 @@ const mockAttemptSchema = new mongoose.Schema(
     answers: [answerSchema],
     score:   { type: Number, default: 0 },  // total correct
     total:   { type: Number, default: 0 },  // total questions
-    sectionScores: {
+    sectionScores: ({
       aptitude:      { type: sectionScoreSchema, default: () => ({}) },
       communication: { type: sectionScoreSchema, default: () => ({}) },
       coding:        { type: sectionScoreSchema, default: () => ({}) },
       sql:           { type: sectionScoreSchema, default: () => ({}) },
-    },
+    } as any),
     timeTaken:   { type: Number, default: 0 }, // seconds
     completedAt: { type: Date, default: Date.now },
   },

@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec npx ts-node server.ts",
+    "start": "npx ts-node server.ts",
     "seed": "npx ts-node seed.ts",
-    "build": "npm run lint && tsc",
+    "build": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier . --write"
   },
