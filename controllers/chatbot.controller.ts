@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { groqRequest } from "../utils/groq.ts";
+import { geminiRequest, extractGeminiText } from "../utils/gemini.ts";
 
 const APP_SYSTEM_CONTEXT = `You are BeyondBasic AI — a smart, friendly assistant embedded in the BeyondBasic placement preparation platform. You have deep knowledge of every feature of the platform and help users navigate, learn, and prepare for tech placements.
 
@@ -121,9 +121,9 @@ BeyondBasic is a full-stack placement preparation platform for engineering stude
 
 export const chatWithBot = async (req: Request, res: Response) => {
   try {
-    const apiKey = (process.env.GROQ_API_KEY || "").trim();
+    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
     if (!apiKey) {
-      return res.status(503).json({ message: "GROQ_API_KEY is not configured" });
+      return res.status(503).json({ message: "GEMINI_API_KEY is not configured" });
     }
 
     const { message, history = [] } = req.body as {
@@ -135,16 +135,31 @@ export const chatWithBot = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Message is required" });
     }
 
-    const messages: { role: string; content: string }[] = [
-      { role: "system", content: APP_SYSTEM_CONTEXT },
+    // Build Gemini contents array from history + new message
+    const contents = [
       ...history.map((h) => ({
-        role:    h.role === "model" ? "assistant" : "user",
-        content: h.text,
+        role:  h.role === "model" ? "model" : "user",
+        parts: [{ text: h.text }],
       })),
-      { role: "user", content: message.trim() },
+      { role: "user", parts: [{ text: message.trim() }] },
     ];
 
-    const reply = await groqRequest(apiKey, messages, { temperature: 0.7, maxTokens: 1024 });
+    const payload = {
+      system_instruction: { parts: [{ text: APP_SYSTEM_CONTEXT }] },
+      contents,
+      generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+    };
+
+    const { status, body } = await geminiRequest(apiKey, "gemini-2.5-flash", payload);
+    const data = JSON.parse(body);
+
+    if (status !== 200 || data.error) {
+      throw new Error(data.error?.message || `Gemini API returned status ${status}`);
+    }
+
+    const reply = extractGeminiText(data);
+    if (!reply) throw new Error("Gemini returned empty content");
+
     res.json({ reply });
   } catch (err: any) {
     console.error("Chatbot error:", err.message);

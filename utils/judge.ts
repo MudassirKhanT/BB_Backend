@@ -10,6 +10,7 @@ const LANG_CONFIG: Record<string, { id: number }> = {
   cpp:        { id: 54 },
   java:       { id: 62 },
   c:          { id: 50 },
+  sql:        { id: 82 },
 };
 
 const STATUS_NAMES: Record<number, string> = {

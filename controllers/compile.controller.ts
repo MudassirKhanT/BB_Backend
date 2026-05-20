@@ -12,6 +12,7 @@ const LANG_CONFIG: Record<string, { id: number; label: string; version: string }
   cpp:        { id: 54, label: "C++",         version: "GCC 9.2.0"   },
   java:       { id: 62, label: "Java",        version: "OpenJDK 13.0.1" },
   c:          { id: 50, label: "C",           version: "GCC 9.2.0"   },
+  sql:        { id: 82, label: "MySQL",       version: "8.0"          },
 };
 
 // ─── Judge0 status IDs → human-readable ──────────────────────────────────────
@@ -157,31 +158,10 @@ export const compileCode = async (req: Request, res: Response) => {
     return res.status(400).json({ message: "language and code are required" });
   }
 
-  // ── SQL ──
-  if (language === "sql") {
-    const validation = validateSQL(code);
-    if (!validation.valid) {
-      return res.json({
-        stdout:   "",
-        stderr:   `Syntax Error: ${validation.error}`,
-        exitCode: 1,
-        status:   "Compilation Error",
-      });
-    }
-    return res.json({
-      stdout:   "Query validated successfully.\n(SQL execution requires a connected database — submit to run against real test cases.)",
-      stderr:   "",
-      exitCode: 0,
-      status:   "Accepted",
-      time:     "0.01",
-      memory:   0,
-    });
-  }
-
   const cfg = LANG_CONFIG[language as string];
   if (!cfg) {
     return res.status(400).json({
-      message: `Unsupported language "${language}". Supported: python, javascript, cpp, java, sql`,
+      message: `Unsupported language "${language}". Supported: python, javascript, cpp, java, c, sql`,
     });
   }
 
